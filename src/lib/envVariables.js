@@ -4,8 +4,10 @@ const MONGODB_URI_DEV = process.env.MONGODB_URI_DEV;
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const MONGODB_URI = MONGODB_URI_PROD;
+const MONGODB_URI_DEB = MONGODB_URI_DEV;
 
 module.exports = {
   MONGODB_URI,
-  JWT_SECRET
+  JWT_SECRET,
+  MONGODB_URI_DEB
 };

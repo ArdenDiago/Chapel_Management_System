@@ -1,18 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Calendar, momentLocalizer } from 'react-big-calendar';
+import { Calendar, momentLocalizer, Event as RBCEvent } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import NavBar from '../components/NavBar';
-import Footer from '../components/Footer';
 
 const localizer = momentLocalizer(moment);
 
 type Booking = {
   _id: string;
-  fullName?: string; // registration sends fullName
-  name?: string;     // just in case backend used name
+  fullName?: string;
+  name?: string;
   email?: string;
   mobileNo?: string;
   representation?: string;
@@ -22,8 +20,13 @@ type Booking = {
   date: string;      // "2025-09-26"
 };
 
+// Extend react-big-calendar Event to include our booking resource
+type BookingEvent = RBCEvent & {
+  resource: Booking;
+};
+
 export default function CalendarPage() {
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<BookingEvent[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
@@ -33,32 +36,41 @@ export default function CalendarPage() {
         const data = await res.json();
 
         if (data.success && Array.isArray(data.data)) {
-          const mapped = (data.data as Booking[]).map((booking) => {
-            // ensure timeSlot exists and split (fallbacks if format slightly different)
-            const [startTimeRaw, endTimeRaw] = (booking.timeSlot || '').split(' - ').map(s => s?.trim() || '');
-            // Try parsing "h:mma" (e.g. 1:00pm). If parse fails, fallback to day-only event.
+          const mapped: BookingEvent[] = (data.data as Booking[]).map((booking) => {
+            const [startTimeRaw, endTimeRaw] = (booking.timeSlot || "")
+              .split(" - ")
+              .map((s) => s?.trim() || "");
+
             let start: Date;
             let end: Date;
+
             if (startTimeRaw && endTimeRaw) {
-              start = moment(`${booking.date} ${startTimeRaw}`, 'YYYY-MM-DD h:mma').toDate();
-              end = moment(`${booking.date} ${endTimeRaw}`, 'YYYY-MM-DD h:mma').toDate();
+              start = moment(
+                `${booking.date} ${startTimeRaw}`,
+                "YYYY-MM-DD h:mma"
+              ).toDate();
+
+              end = moment(
+                `${booking.date} ${endTimeRaw}`,
+                "YYYY-MM-DD h:mma"
+              ).toDate();
             } else {
-              // full-day fallback
-              start = moment(booking.date, 'YYYY-MM-DD').startOf('day').toDate();
-              end = moment(booking.date, 'YYYY-MM-DD').endOf('day').toDate();
+              start = moment(booking.date, "YYYY-MM-DD").startOf("day").toDate();
+              end = moment(booking.date, "YYYY-MM-DD").endOf("day").toDate();
             }
 
             return {
               id: booking._id,
-              title: booking.fullName || booking.name || 'Booking',
+              title: booking.fullName || booking.name || "Booking",
               start,
               end,
               resource: booking,
             };
           });
+
           setEvents(mapped);
         } else {
-          console.warn('No bookings returned or unexpected format', data);
+          console.warn("No bookings returned or unexpected format", data);
         }
       } catch (err) {
         console.error('❌ Error fetching bookings:', err);
@@ -70,7 +82,6 @@ export default function CalendarPage() {
 
   return (
     <>
-
       <div className="p-4 min-h-screen bg-gradient-to-br from-indigo-50 via-white to-indigo-100">
         <h1 className="text-3xl font-extrabold mb-6 text-center text-indigo-700">🙏 Rosary & Prayer Bookings</h1>
 

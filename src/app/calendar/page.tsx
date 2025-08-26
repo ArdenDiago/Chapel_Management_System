@@ -11,19 +11,27 @@ const localizer = momentLocalizer(moment);
 
 type Booking = {
   _id: string;
-  fullName?: string; // registration sends fullName
-  name?: string;     // just in case backend used name
+  fullName?: string;
+  name?: string;
   email?: string;
   mobileNo?: string;
   representation?: string;
   parishAssociation?: string;
   communityZone?: string;
-  timeSlot: string;  // "1:00pm - 2:00pm"
-  date: string;      // "2025-09-26"
+  timeSlot: string;  // e.g. "1:00pm - 2:00pm"
+  date: string;      // e.g. "2025-09-26"
+};
+
+type CalendarEvent = {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  resource: Booking;
 };
 
 export default function CalendarPage() {
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
@@ -33,32 +41,40 @@ export default function CalendarPage() {
         const data = await res.json();
 
         if (data.success && Array.isArray(data.data)) {
-          const mapped = (data.data as Booking[]).map((booking) => {
-            // ensure timeSlot exists and split (fallbacks if format slightly different)
-            const [startTimeRaw, endTimeRaw] = (booking.timeSlot || '').split(' - ').map(s => s?.trim() || '');
-            // Try parsing "h:mma" (e.g. 1:00pm). If parse fails, fallback to day-only event.
+          const mapped: CalendarEvent[] = (data.data as Booking[]).map((booking) => {
+            const [startTimeRaw, endTimeRaw] = (booking.timeSlot || "")
+              .split(" - ")
+              .map((s) => s?.trim() || "");
+
             let start: Date;
             let end: Date;
+
             if (startTimeRaw && endTimeRaw) {
-              start = moment(`${booking.date} ${startTimeRaw}`, 'YYYY-MM-DD h:mma').toDate();
-              end = moment(`${booking.date} ${endTimeRaw}`, 'YYYY-MM-DD h:mma').toDate();
+              start = moment(
+                `${booking.date} ${startTimeRaw}`,
+                "YYYY-MM-DD h:mma"
+              ).toDate();
+              end = moment(
+                `${booking.date} ${endTimeRaw}`,
+                "YYYY-MM-DD h:mma"
+              ).toDate();
             } else {
-              // full-day fallback
-              start = moment(booking.date, 'YYYY-MM-DD').startOf('day').toDate();
-              end = moment(booking.date, 'YYYY-MM-DD').endOf('day').toDate();
+              start = moment(booking.date, "YYYY-MM-DD").startOf("day").toDate();
+              end = moment(booking.date, "YYYY-MM-DD").endOf("day").toDate();
             }
 
             return {
               id: booking._id,
-              title: booking.fullName || booking.name || 'Booking',
+              title: booking.fullName || booking.name || "Booking",
               start,
               end,
               resource: booking,
             };
           });
+
           setEvents(mapped);
         } else {
-          console.warn('No bookings returned or unexpected format', data);
+          console.warn("No bookings returned or unexpected format", data);
         }
       } catch (err) {
         console.error('❌ Error fetching bookings:', err);
@@ -73,7 +89,9 @@ export default function CalendarPage() {
       <NavBar />
 
       <div className="p-4 min-h-screen bg-gradient-to-br from-indigo-50 via-white to-indigo-100">
-        <h1 className="text-3xl font-extrabold mb-6 text-center text-indigo-700">🙏 Rosary & Prayer Bookings</h1>
+        <h1 className="text-3xl font-extrabold mb-6 text-center text-indigo-700">
+          🙏 Rosary & Prayer Bookings
+        </h1>
 
         <div className="bg-white rounded-3xl shadow-xl p-4 md:p-6 border border-indigo-100">
           <div className="overflow-x-auto">
@@ -94,7 +112,9 @@ export default function CalendarPage() {
 
         {selectedBooking && (
           <div className="mt-8 max-w-xl mx-auto p-6 rounded-2xl shadow-lg bg-white border-l-4 border-indigo-500">
-            <h2 className="text-2xl font-semibold text-indigo-700 mb-3">{selectedBooking.fullName || selectedBooking.name}</h2>
+            <h2 className="text-2xl font-semibold text-indigo-700 mb-3">
+              {selectedBooking.fullName || selectedBooking.name}
+            </h2>
             <p className="text-gray-700 mb-1"><span className="font-medium">📅</span> {selectedBooking.date}</p>
             <p className="text-gray-700 mb-1"><span className="font-medium">⏰</span> {selectedBooking.timeSlot}</p>
             {selectedBooking.email && <p className="text-gray-700 mb-1"><span className="font-medium">✉️</span> {selectedBooking.email}</p>}
