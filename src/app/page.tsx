@@ -14,7 +14,7 @@ export default function Home() {
       <section id="home" className="bg-blue-100 py-20 text-center px-4">
         <div className="container mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Welcome to Your Booking
+            Welcome to Your Chapel Booking
           </h2>
           <p className="text-base md:text-lg mb-6">
             Streamline car operations with our all-in-one platform for events,
