@@ -1,16 +1,17 @@
-name: CD
+name: Build
 
 on:
   push:
     branches:
-      - main      # production
-      - develop   # staging
-
+      - main     
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     env:
       NODE_ENV: production
+      MONGODB_URI_PROD: ${{ secrets.MONGODB_URI_PROD }}
+      MONGODB_URI_DEV: ${{ secrets.MONGODB_URI_DEV }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
     steps:
       - name: Checkout code
@@ -24,22 +25,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Set environment variables
-        run: |
-          if [ "${GITHUB_REF##*/}" = "main" ]; then
-            cp .env.production .env
-          else
-            cp .env.staging .env
-          fi
-
       - name: Build Next.js app
         run: npm run build
-
-      - name: Deploy to server
-        uses: easingthemes/ssh-deploy@v2
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          remote-user: ${{ secrets.SSH_USER }}
-          server-ip: ${{ secrets.SERVER_IP }}
-          remote-path: /var/www/nextjs-app
-          local-path: .next
