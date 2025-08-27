@@ -37,7 +37,7 @@ export default function CalendarPage() {
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const res = await fetch('/api/admin/bookings');
+        const res = await fetch('/api/calendar');
         const data = await res.json();
 
         if (data.success && Array.isArray(data.data)) {

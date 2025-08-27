@@ -34,7 +34,6 @@ export default function Register() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          /* backend expects: name or fullName? we'll send both to be safe */
           name: formData.fullName,
           fullName: formData.fullName,
           mobileNo: String(formData.mobileNo).trim(),

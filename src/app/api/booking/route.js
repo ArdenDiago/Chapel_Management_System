@@ -20,10 +20,10 @@ export async function POST(req) {
     representation,
     parishAssociation,
     communityZone,
-    timings,
+    timeSlot,
     date } = data;
 
-
+  console.log("Data", data);
 
   const DB_Data = {
     name: fullName,
@@ -32,10 +32,11 @@ export async function POST(req) {
     representation: representation,
     parishAssociation: parishAssociation,
     communityZone: communityZone,
-    timeSlot: timings,
+    timeSlot: timeSlot,
     date: date,
   }
   const result = await createBooking(DB_Data);
+  console.log(DB_Data);
   return NextResponse.json(result, { status: result.success ? 200 : 400 });
 }
 
