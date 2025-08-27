@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { MONGODB_URI } from './envVariables';
 
 let isConnected = false;
 
@@ -6,7 +7,7 @@ export async function connectDB() {
   if (isConnected) return;
 
   try {
-    await mongoose.connect(process.env.MONGODB_URI_PROD, {
+    await mongoose.connect(MONGODB_URI, {
       dbName: "chapel_booking",
     });
     isConnected = true;

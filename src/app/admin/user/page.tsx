@@ -48,7 +48,7 @@ export default function MasterAdmin() {
         const decoded = jwtDecode<JWTPayload>(token);
         setCurrentUser(decoded.name as string || "Admin");
       } catch (_err) {
-        console.error("Invalid JWT");
+        console.error("Invalid JWT",_err);
       }
     }
   }, []);

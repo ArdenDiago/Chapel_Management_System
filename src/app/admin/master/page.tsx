@@ -52,7 +52,7 @@ export default function MasterAdmin() {
                 const decoded = jwtDecode<JWTPayload>(token);
                 setCurrentUser((decoded.name as string) || "Admin");
             } catch (_err) {
-                console.error("Invalid JWT");
+                console.error("Invalid JWT", _err);
             }
         }
     }, []);
@@ -117,6 +117,7 @@ export default function MasterAdmin() {
         } catch (_err) {
             setUserMessage("Server error during user creation.");
             setUserMessageType("error");
+            console.error(_err);
         }
     };
 
@@ -145,6 +146,7 @@ export default function MasterAdmin() {
             setDeleteTarget(null);
         } catch (_err) {
             setDeleteError("Server error during deletion");
+            console.error(_err);
         }
     };
 
