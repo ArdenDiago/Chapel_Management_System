@@ -87,7 +87,7 @@ export default function AdminLogin() {
           router.push('/admin/user');
         }
       } else {
-        showMessage('error', 'Access denied');
+        showMessage('error', data.message);
       }
     } catch (err) {
       console.error(err);
