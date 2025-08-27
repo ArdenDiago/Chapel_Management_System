@@ -2,7 +2,7 @@
 import { connectDB } from '@/lib/mongodb';
 import users from '@/models/users';
 
-export async function GET(req) {
+export async function GET() {
   try {
     await connectDB();
 

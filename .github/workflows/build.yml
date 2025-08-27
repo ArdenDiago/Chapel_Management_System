@@ -1,0 +1,45 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main      # production
+      - develop   # staging
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set environment variables
+        run: |
+          if [ "${GITHUB_REF##*/}" = "main" ]; then
+            cp .env.production .env
+          else
+            cp .env.staging .env
+          fi
+
+      - name: Build Next.js app
+        run: npm run build
+
+      - name: Deploy to server
+        uses: easingthemes/ssh-deploy@v2
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          remote-user: ${{ secrets.SSH_USER }}
+          server-ip: ${{ secrets.SERVER_IP }}
+          remote-path: /var/www/nextjs-app
+          local-path: .next

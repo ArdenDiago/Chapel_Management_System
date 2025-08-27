@@ -5,10 +5,9 @@ import NavBar from '../../components/NavBar';
 import Footer from '../../components/Footer';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
-import { jwtDecode } from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode'; // fixed import
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
-type User = { name: string; role: string };
 type Booking = {
   _id: string;
   fullName?: string;
@@ -21,6 +20,7 @@ type Booking = {
   timeSlot: string;
   date: string;
 };
+
 type CalendarEvent = {
   id: string;
   title: string;
@@ -28,12 +28,12 @@ type CalendarEvent = {
   end: Date;
   resource: Booking;
 };
-type JWTPayload = { name?: string; role?: string; [key: string]: any };
+
+type JWTPayload = { name?: string; role?: string;[key: string]: unknown };
 
 const localizer = momentLocalizer(moment);
 
 export default function MasterAdmin() {
-  const [users, setUsers] = useState<User[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -45,10 +45,10 @@ export default function MasterAdmin() {
     const token = localStorage.getItem("token");
     if (token) {
       try {
-        const decoded: JWTPayload = jwtDecode(token);
-        setCurrentUser(decoded.name || "Admin");
-      } catch (err) {
-        console.error("Invalid JWT:", err);
+        const decoded = jwtDecode<JWTPayload>(token);
+        setCurrentUser(decoded.name as string || "Admin");
+      } catch (_err) {
+        console.error("Invalid JWT");
       }
     }
   }, []);

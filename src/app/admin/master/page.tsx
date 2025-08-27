@@ -5,7 +5,7 @@ import NavBar from '../../components/NavBar';
 import Footer from '../../components/Footer';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
-import { jwtDecode } from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode'; // fixed import
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 type User = { name: string; role: string; email?: string };
@@ -22,7 +22,7 @@ type Booking = {
     date: string;
 };
 type CalendarEvent = { id: string; title: string; start: Date; end: Date; resource: Booking };
-type JWTPayload = { name?: string; role?: string; [key: string]: any };
+type JWTPayload = { name?: string; role?: string;[key: string]: unknown };
 
 const localizer = momentLocalizer(moment);
 
@@ -30,7 +30,7 @@ export default function MasterAdmin() {
     const [users, setUsers] = useState<User[]>([]);
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [bookings, setBookings] = useState<Booking[]>([]);
-    const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+    // selectedBooking is not used, so removed
     const [currentUser, setCurrentUser] = useState<string>("");
     const [filterDate, setFilterDate] = useState<string>("");
     const [newUser, setNewUser] = useState({ name: '', password: '', role: '' });
@@ -49,9 +49,11 @@ export default function MasterAdmin() {
         const token = localStorage.getItem("token");
         if (token) {
             try {
-                const decoded: JWTPayload = jwtDecode(token);
-                setCurrentUser(decoded.name || "Admin");
-            } catch (err) { console.error("Invalid JWT:", err); }
+                const decoded = jwtDecode<JWTPayload>(token);
+                setCurrentUser((decoded.name as string) || "Admin");
+            } catch (_err) {
+                console.error("Invalid JWT");
+            }
         }
     }, []);
 
@@ -70,8 +72,12 @@ export default function MasterAdmin() {
             setBookings(data.data);
             const mapped: CalendarEvent[] = data.data.map((booking: Booking) => {
                 const [startTimeRaw, endTimeRaw] = (booking.timeSlot || "").split(" - ").map(s => s?.trim() || "");
-                const start = startTimeRaw && endTimeRaw ? moment(`${booking.date} ${startTimeRaw}`, "YYYY-MM-DD h:mma").toDate() : moment(booking.date, "YYYY-MM-DD").startOf("day").toDate();
-                const end = startTimeRaw && endTimeRaw ? moment(`${booking.date} ${endTimeRaw}`, "YYYY-MM-DD h:mma").toDate() : moment(booking.date, "YYYY-MM-DD").endOf("day").toDate();
+                const start = startTimeRaw && endTimeRaw
+                    ? moment(`${booking.date} ${startTimeRaw}`, "YYYY-MM-DD h:mma").toDate()
+                    : moment(booking.date, "YYYY-MM-DD").startOf("day").toDate();
+                const end = startTimeRaw && endTimeRaw
+                    ? moment(`${booking.date} ${endTimeRaw}`, "YYYY-MM-DD h:mma").toDate()
+                    : moment(booking.date, "YYYY-MM-DD").endOf("day").toDate();
                 return { id: booking._id, title: booking.fullName || booking.name || "Booking", start, end, resource: booking };
             });
             setEvents(mapped);
@@ -84,7 +90,7 @@ export default function MasterAdmin() {
 
     // Add new user
     const handleAddUser = async () => {
-        setUserMessage(null); // reset
+        setUserMessage(null);
         if (!newUser.name || !newUser.password || !newUser.role) {
             setUserMessage("Please fill all fields and select a role.");
             setUserMessageType("error");
@@ -108,7 +114,7 @@ export default function MasterAdmin() {
                 setUserMessage(data.message || "Failed to create user.");
                 setUserMessageType("error");
             }
-        } catch (err) {
+        } catch (_err) {
             setUserMessage("Server error during user creation.");
             setUserMessageType("error");
         }
@@ -137,7 +143,7 @@ export default function MasterAdmin() {
             fetchUsers();
             setShowDeleteModal(false);
             setDeleteTarget(null);
-        } catch (err) {
+        } catch (_err) {
             setDeleteError("Server error during deletion");
         }
     };
@@ -145,21 +151,17 @@ export default function MasterAdmin() {
     return (
         <div className={`min-h-screen flex flex-col ${showDeleteModal ? "overflow-hidden" : ""}`}>
             <NavBar />
-
-            {/* Root content blur if modal active */}
             <main className={`container mx-auto p-4 md:p-8 ${showDeleteModal ? "blur-sm pointer-events-none" : ""}`}>
                 <h1 className="text-3xl font-bold mb-6 text-indigo-700">Welcome, {currentUser}</h1>
 
                 {/* Add Admin */}
                 <div className="bg-white p-6 rounded-lg shadow mb-8">
                     <h2 className="font-semibold text-lg mb-2">Add New User</h2>
-
                     {userMessage && (
                         <div className={`mb-4 p-2 rounded ${userMessageType === 'success' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
                             {userMessage}
                         </div>
                     )}
-
                     <input
                         className="border p-2 rounded mr-2 mb-2 block"
                         placeholder="Name"
@@ -173,7 +175,6 @@ export default function MasterAdmin() {
                         value={newUser.password}
                         onChange={e => setNewUser({ ...newUser, password: e.target.value })}
                     />
-
                     <div className="mb-2">
                         <span className="mr-4 font-medium">Role:</span>
                         <label className="mr-4">
@@ -199,7 +200,6 @@ export default function MasterAdmin() {
                             Master Admin
                         </label>
                     </div>
-
                     <button
                         onClick={handleAddUser}
                         className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
@@ -238,15 +238,13 @@ export default function MasterAdmin() {
                         style={{ height: 550 }}
                         views={['month', 'week', 'day']}
                         popup
-                        onSelectEvent={event => setSelectedBooking(event.resource)}
                         defaultDate={new Date(2025, 8, 28)}
                     />
                 </div>
 
-                {/* Bookings Table with Date Filter */}
+                {/* Bookings Table */}
                 <div className="mt-8 bg-white p-6 rounded-lg shadow">
                     <h2 className="font-semibold text-lg mb-4">Bookings Table</h2>
-
                     <div className="mb-4 flex items-center gap-2">
                         <label className="font-medium">Select Date:</label>
                         <input
@@ -264,7 +262,6 @@ export default function MasterAdmin() {
                             </button>
                         )}
                     </div>
-
                     {filteredBookings.length > 0 ? (
                         <table className="min-w-full border">
                             <thead>
@@ -307,7 +304,7 @@ export default function MasterAdmin() {
                 </div>
             </main>
 
-            {/* Delete Confirmation Modal */}
+            {/* Delete Modal */}
             {showDeleteModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
                     <div className="bg-white rounded-lg shadow-lg p-6 w-80">
