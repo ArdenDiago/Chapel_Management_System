@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import NavBar from '../../components/NavBar';
+import NavBarWithLogout from '@/app/components/NavBarWithLogout';
 import Footer from '../../components/Footer';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
@@ -48,7 +48,7 @@ export default function MasterAdmin() {
         const decoded = jwtDecode<JWTPayload>(token);
         setCurrentUser(decoded.name as string || "Admin");
       } catch (_err) {
-        console.error("Invalid JWT",_err);
+        console.error("Invalid JWT", _err);
       }
     }
   }, []);
@@ -87,7 +87,7 @@ export default function MasterAdmin() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <NavBar />
+      <NavBarWithLogout />
       <main className="container mx-auto p-4 md:p-8">
         <h1 className="text-3xl font-bold mb-6 text-indigo-700">
           Welcome, {currentUser}

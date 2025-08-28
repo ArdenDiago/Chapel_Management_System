@@ -14,7 +14,6 @@ export default function Home() {
           <h1 className="text-4xl md:text-5xl font-extrabold mb-6 text-indigo-800">Jai Yesu 🙏</h1>
           <p className="text-lg md:text-xl text-gray-700 mb-6">
             Tentative start date of the 13 Hours in the Chapel is <strong>9th September 2025</strong>.
-            We need about <strong>10 volunteers</strong> to help manage the bookings.
           </p>
           <Link
             href="/registration"

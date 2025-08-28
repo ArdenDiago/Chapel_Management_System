@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import NavBar from '../../components/NavBar';
+import NavBarWithLogout from '@/app/components/NavBarWithLogout';
 import Footer from '../../components/Footer';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
@@ -152,7 +152,7 @@ export default function MasterAdmin() {
 
     return (
         <div className={`min-h-screen flex flex-col ${showDeleteModal ? "overflow-hidden" : ""}`}>
-            <NavBar />
+            <NavBarWithLogout />
             <main className={`container mx-auto p-4 md:p-8 ${showDeleteModal ? "blur-sm pointer-events-none" : ""}`}>
                 <h1 className="text-3xl font-bold mb-6 text-indigo-700">Welcome, {currentUser}</h1>
 
