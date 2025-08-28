@@ -7,6 +7,7 @@ import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import { jwtDecode } from 'jwt-decode'; // fixed import
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import bcrypt from 'bcryptjs';
 
 type User = { name: string; role: string; email?: string };
 type Booking = {
@@ -30,6 +31,7 @@ export default function MasterAdmin() {
     const [users, setUsers] = useState<User[]>([]);
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [bookings, setBookings] = useState<Booking[]>([]);
+    const [enPasswd, setEnPasswd] = useState<string>("");
     // selectedBooking is not used, so removed
     const [currentUser, setCurrentUser] = useState<string>("");
     const [filterDate, setFilterDate] = useState<string>("");
@@ -43,6 +45,11 @@ export default function MasterAdmin() {
     // Message states for Add User
     const [userMessage, setUserMessage] = useState<string | null>(null);
     const [userMessageType, setUserMessageType] = useState<'success' | 'error' | null>(null);
+
+    // Delete booking
+    const [deleteBookingMessage, setDeleteBookingMessage] = useState<string | null>(null);
+    const [deleteBookingMessageType, setDeleteBookingMessageType] = useState<'success' | 'error' | null>(null);
+
 
     // Decode JWT
     useEffect(() => {
@@ -69,6 +76,7 @@ export default function MasterAdmin() {
         const res = await fetch('/api/admin/bookings');
         const data = await res.json();
         if (data.success && Array.isArray(data.data)) {
+            console.log(data.data);
             setBookings(data.data);
             const mapped: CalendarEvent[] = data.data.map((booking: Booking) => {
                 const [startTimeRaw, endTimeRaw] = (booking.timeSlot || "").split(" - ").map(s => s?.trim() || "");
@@ -91,6 +99,7 @@ export default function MasterAdmin() {
     // Add new user
     const handleAddUser = async () => {
         setUserMessage(null);
+
         if (!newUser.name || !newUser.password || !newUser.role) {
             setUserMessage("Please fill all fields and select a role.");
             setUserMessageType("error");
@@ -98,28 +107,38 @@ export default function MasterAdmin() {
         }
 
         try {
+            // hash password directly into a local variable
+            const hashedPassword = await bcrypt.hash(newUser.password, 10);
+
             const res = await fetch('/api/admin/createUser', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newUser),
+                body: JSON.stringify({
+                    name: newUser.name,
+                    role: newUser.role,
+                    password: hashedPassword, // send hashed password
+                }),
             });
+
             const data = await res.json();
 
             if (data.success) {
                 fetchUsers();
                 setUserMessage("User created successfully!");
                 setUserMessageType("success");
+                // reset form fields
                 setNewUser({ name: '', password: '', role: '' });
             } else {
                 setUserMessage(data.message || "Failed to create user.");
                 setUserMessageType("error");
             }
-        } catch (_err) {
+        } catch (err) {
             setUserMessage("Server error during user creation.");
             setUserMessageType("error");
-            console.error(_err);
+            console.error(err);
         }
     };
+
 
     // Delete user modal
     const handleDeleteUser = async (email: string) => {
@@ -149,6 +168,30 @@ export default function MasterAdmin() {
             console.error(_err);
         }
     };
+
+    const deleteUserBooking = async (id: string) => {
+        try {
+            const res = await fetch(`/api/admin/bookings?id=${id}`, { method: "DELETE" });
+            const data = await res.json();
+
+            if (!data.success) {
+                setDeleteBookingMessage(data.message || "Failed to delete booking");
+                setDeleteBookingMessageType("error");
+                return;
+            }
+
+            // ✅ Update local state (remove deleted booking)
+            setBookings(prev => prev.filter(b => b._id !== id));
+            setFilteredBookings(prev => prev.filter(b => b._id !== id));
+
+            setDeleteBookingMessage("Booking deleted successfully");
+            setDeleteBookingMessageType("success");
+        } catch (err: any) {
+            setDeleteBookingMessage(err.message || "Error deleting booking");
+            setDeleteBookingMessageType("error");
+        }
+    };
+
 
     return (
         <div className={`min-h-screen flex flex-col ${showDeleteModal ? "overflow-hidden" : ""}`}>
@@ -272,6 +315,7 @@ export default function MasterAdmin() {
                                     <th className="border px-4 py-2">Name</th>
                                     <th className="border px-4 py-2">Email</th>
                                     <th className="border px-4 py-2">Mobile</th>
+                                    <th className="border px-4 py-2">Option</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -294,6 +338,14 @@ export default function MasterAdmin() {
                                                 <td className="border px-4 py-2">{b.fullName || b.name || '-'}</td>
                                                 <td className="border px-4 py-2">{b.email || '-'}</td>
                                                 <td className="border px-4 py-2">{b.mobileNo || '-'}</td>
+                                                <td className="border px-4 py-2">
+                                                    <button
+                                                        onClick={() => deleteUserBooking(b._id)}
+                                                        className="text-red-600 hover:underline"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </td>
                                             </tr>
                                         ))
                                     );

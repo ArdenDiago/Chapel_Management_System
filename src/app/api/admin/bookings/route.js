@@ -7,11 +7,9 @@ export async function GET(req) {
   try {
     await connectDB();
 
-    // Optional: get query params if needed
     const url = new URL(req.url);
     const email = url.searchParams.get('email');
 
-    // If you want to check authorization:
     if (email) {
       const user = await User.findOne({ email });
       if (!user) {
@@ -33,6 +31,42 @@ export async function GET(req) {
     return new Response(JSON.stringify({ success: false, message: 'Server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+export async function DELETE(req) {
+  try {
+    await connectDB();
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return new Response(JSON.stringify({ success: false, message: "Missing booking id" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const deletedBooking = await Booking.findByIdAndDelete(id);
+
+    if (!deletedBooking) {
+      return new Response(JSON.stringify({ success: false, message: "Booking not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ success: true, message: "Booking deleted successfully", data: deletedBooking }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("DELETE /api/admin/bookings error:", err);
+    return new Response(JSON.stringify({ success: false, message: "Server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
     });
   }
 }

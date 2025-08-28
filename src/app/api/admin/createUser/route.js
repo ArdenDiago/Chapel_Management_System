@@ -24,8 +24,9 @@ export async function POST(req) {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+    console.log("Hash password: ", password);
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = password;
 
     await users.create({
       name,
