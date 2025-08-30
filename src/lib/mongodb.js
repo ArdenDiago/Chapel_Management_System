@@ -8,9 +8,7 @@ export async function connectDB() {
   if (isConnected) return;
 
   try {
-    const conn = await mongoose.connect(MONGODB_URI, {
-      dbName: "chapel_booking",
-    });
+    const conn = await mongoose.connect(MONGODB_URI);
     isConnected = true;
     console.log("✅ MongoDB connected");
 
@@ -19,8 +17,8 @@ export async function connectDB() {
 
     // master admin:
     const defaultAdmin = {
-      name: "admin",
-      password: await bcrypt.hash(adminPassword, 10), // hash the password
+      name: "admin".toUpperCase(),
+      passwordHash: await bcrypt.hash(adminPassword, 10), // hash the password
       role: "master",
     };
 
