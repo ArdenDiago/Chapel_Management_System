@@ -12,6 +12,7 @@ jobs:
       MONGODB_URI_PROD: ${{ secrets.MONGODB_URI_PROD }}
       MONGODB_URI_DEV: ${{ secrets.MONGODB_URI_DEV }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      password: ${{secrets.PASSWORD}}
 
     steps:
       - name: Checkout code
