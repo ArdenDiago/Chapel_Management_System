@@ -48,7 +48,7 @@ export async function createBooking(data) {
         if (err.code === 11000) {
             return {
                 success: false,
-                response: "Duplicate booking: You already booked this slot.",
+                response: "This slot is full (max 5 bookings allowed)",
             };
         }
 
