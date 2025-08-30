@@ -1,6 +1,5 @@
 // src/app/api/admin/createUser/route.js
 import { connectDB } from '@/lib/mongodb';
-import bcrypt from 'bcryptjs';
 import users from '@/models/users';
 
 export async function POST(req) {

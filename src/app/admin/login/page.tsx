@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import NavBar from '@/app/components/NavBar';
 import Footer from '@/app/components/Footer';
 import { jwtDecode } from 'jwt-decode';
-import bcrypt from 'bcryptjs';
 
 // Define token payload type
 interface TokenPayload {

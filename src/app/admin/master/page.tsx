@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import NavBarWithLogout from '@/app/components/NavBarWithLogout';
 import Footer from '../../components/Footer';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
-import { jwtDecode } from 'jwt-decode'; // fixed import
+import { jwtDecode } from 'jwt-decode';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import bcrypt from 'bcryptjs';
+import { Loader2 } from "lucide-react";
 
 type User = { name: string; role: string; email?: string };
 type Booking = {
@@ -28,41 +30,46 @@ type JWTPayload = { name?: string; role?: string;[key: string]: unknown };
 const localizer = momentLocalizer(moment);
 
 export default function MasterAdmin() {
+    const router = useRouter();
+
     const [users, setUsers] = useState<User[]>([]);
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [bookings, setBookings] = useState<Booking[]>([]);
-    const [enPasswd, setEnPasswd] = useState<string>("");
-    // selectedBooking is not used, so removed
     const [currentUser, setCurrentUser] = useState<string>("");
     const [filterDate, setFilterDate] = useState<string>("");
     const [newUser, setNewUser] = useState({ name: '', password: '', role: '' });
 
-    // Modal states
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
 
-    // Message states for Add User
     const [userMessage, setUserMessage] = useState<string | null>(null);
     const [userMessageType, setUserMessageType] = useState<'success' | 'error' | null>(null);
 
-    // Delete booking
-    const [deleteBookingMessage, setDeleteBookingMessage] = useState<string | null>(null);
-    const [deleteBookingMessageType, setDeleteBookingMessageType] = useState<'success' | 'error' | null>(null);
+    const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
+    const [authChecked, setAuthChecked] = useState(false);
 
-
-    // Decode JWT
+    // ✅ Route protection
     useEffect(() => {
         const token = localStorage.getItem("token");
-        if (token) {
-            try {
-                const decoded = jwtDecode<JWTPayload>(token);
-                setCurrentUser((decoded.name as string) || "Admin");
-            } catch (_err) {
-                console.error("Invalid JWT", _err);
-            }
+        if (!token) {
+            router.push("/admin/login");
+            return;
         }
-    }, []);
+
+        try {
+            const decoded = jwtDecode<JWTPayload>(token);
+            if (!decoded.role || decoded.role !== "master") {
+                router.push("/unauthorized");
+                return;
+            }
+            setCurrentUser(decoded.name as string || "Admin");
+            setAuthChecked(true);
+        } catch (_err) {
+            console.error("Invalid JWT", _err);
+            router.push("/login");
+        }
+    }, [router]);
 
     // Fetch users
     const fetchUsers = async () => {
@@ -76,7 +83,6 @@ export default function MasterAdmin() {
         const res = await fetch('/api/admin/bookings');
         const data = await res.json();
         if (data.success && Array.isArray(data.data)) {
-            console.log(data.data);
             setBookings(data.data);
             const mapped: CalendarEvent[] = data.data.map((booking: Booking) => {
                 const [startTimeRaw, endTimeRaw] = (booking.timeSlot || "").split(" - ").map(s => s?.trim() || "");
@@ -92,9 +98,11 @@ export default function MasterAdmin() {
         }
     };
 
-    useEffect(() => { fetchBookings(); fetchUsers(); }, []);
+    useEffect(() => { if (authChecked) { fetchBookings(); fetchUsers(); } }, [authChecked]);
 
-    const filteredBookings = filterDate ? bookings.filter(b => b.date === filterDate) : [];
+    useEffect(() => {
+        setFilteredBookings(filterDate ? bookings.filter(b => b.date === filterDate) : []);
+    }, [filterDate, bookings]);
 
     // Add new user
     const handleAddUser = async () => {
@@ -107,7 +115,6 @@ export default function MasterAdmin() {
         }
 
         try {
-            // hash password directly into a local variable
             const hashedPassword = await bcrypt.hash(newUser.password, 10);
 
             const res = await fetch('/api/admin/createUser', {
@@ -116,7 +123,7 @@ export default function MasterAdmin() {
                 body: JSON.stringify({
                     name: newUser.name,
                     role: newUser.role,
-                    password: hashedPassword, // send hashed password
+                    password: hashedPassword,
                 }),
             });
 
@@ -126,7 +133,6 @@ export default function MasterAdmin() {
                 fetchUsers();
                 setUserMessage("User created successfully!");
                 setUserMessageType("success");
-                // reset form fields
                 setNewUser({ name: '', password: '', role: '' });
             } else {
                 setUserMessage(data.message || "Failed to create user.");
@@ -138,7 +144,6 @@ export default function MasterAdmin() {
             console.error(err);
         }
     };
-
 
     // Delete user modal
     const handleDeleteUser = async (email: string) => {
@@ -175,23 +180,30 @@ export default function MasterAdmin() {
             const data = await res.json();
 
             if (!data.success) {
-                setDeleteBookingMessage(data.message || "Failed to delete booking");
-                setDeleteBookingMessageType("error");
+                alert(data.message || "Failed to delete booking");
                 return;
             }
 
-            // ✅ Update local state (remove deleted booking)
             setBookings(prev => prev.filter(b => b._id !== id));
             setFilteredBookings(prev => prev.filter(b => b._id !== id));
 
-            setDeleteBookingMessage("Booking deleted successfully");
-            setDeleteBookingMessageType("success");
-        } catch (err: any) {
-            setDeleteBookingMessage(err.message || "Error deleting booking");
-            setDeleteBookingMessageType("error");
+            alert("Booking deleted successfully");
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                alert(err.message);
+            } else {
+                alert("Error deleting booking");
+            }
         }
     };
 
+    // ✅ Show loading until auth check is complete
+    if (!authChecked) {
+        return <div className="flex flex-col items-center justify-center min-h-screen text-gray-700">
+            <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+            <p className="mt-4 text-lg sm:text-xl font-medium">Loading, please wait...</p>
+        </div>;
+    }
 
     return (
         <div className={`min-h-screen flex flex-col ${showDeleteModal ? "overflow-hidden" : ""}`}>

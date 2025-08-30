@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import NavBarWithLogout from '@/app/components/NavBarWithLogout';
 import Footer from '../../components/Footer';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
-import { jwtDecode } from 'jwt-decode'; // fixed import
+import { jwtDecode } from 'jwt-decode';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 type Booking = {
@@ -29,7 +30,7 @@ type CalendarEvent = {
   resource: Booking;
 };
 
-type JWTPayload = { name?: string; role?: string;[key: string]: unknown };
+type JWTPayload = { name?: string; role?: string; [key: string]: unknown };
 
 const localizer = momentLocalizer(moment);
 
@@ -38,27 +39,37 @@ export default function MasterAdmin() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [currentUser, setCurrentUser] = useState<string>("");
-  const [filterDate, setFilterDate] = useState<string>(""); // for table view
+  const [filterDate, setFilterDate] = useState<string>("");
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-  // Decode JWT to get logged-in user's name
+  const router = useRouter();
+
+  // 🔐 Check if logged in
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const decoded = jwtDecode<JWTPayload>(token);
-        setCurrentUser(decoded.name as string || "Admin");
-      } catch (_err) {
-        console.error("Invalid JWT", _err);
-      }
+    if (!token) {
+      setIsAuthenticated(false);
+      router.push("/admin/login");
+      return;
     }
-  }, []);
+
+    try {
+      const decoded = jwtDecode<JWTPayload>(token);
+      setCurrentUser(decoded.name as string || "Admin");
+      setIsAuthenticated(true);
+    } catch (_err) {
+      console.error("Invalid JWT", _err);
+      setIsAuthenticated(false);
+      router.push("/login");
+    }
+  }, [router]);
 
   // Fetch bookings
   const fetchBookings = async () => {
     const res = await fetch('/api/admin/bookings');
     const data = await res.json();
     if (data.success && Array.isArray(data.data)) {
-      setBookings(data.data); // save for table
+      setBookings(data.data);
       const mapped: CalendarEvent[] = data.data.map((booking: Booking) => {
         const [startTimeRaw, endTimeRaw] = (booking.timeSlot || "").split(" - ").map(s => s?.trim() || "");
         let start: Date;
@@ -84,6 +95,21 @@ export default function MasterAdmin() {
   const filteredBookings = filterDate
     ? bookings.filter(b => b.date === filterDate)
     : [];
+
+  // 🚦 Show loading spinner while checking auth
+  if (isAuthenticated === null) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-3 text-gray-700">
+          <div className="h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-lg font-medium">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 🚫 If not authenticated, don’t render anything (router will redirect)
+  if (!isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
