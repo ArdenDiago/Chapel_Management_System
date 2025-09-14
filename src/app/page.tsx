@@ -11,9 +11,12 @@ export default function Home() {
       {/* Hero Section */}
       <section id="home" className="bg-indigo-100 py-16 md:py-24 text-center px-4">
         <div className="container mx-auto max-w-3xl">
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-6 text-indigo-800">Jai Yesu 🙏</h1>
+          <h1 className="text-4xl md:text-5xl font-extrabold mb-6 text-indigo-800">13 Hours Adoration before Blessed Sacrament</h1>
           <p className="text-lg md:text-xl text-gray-700 mb-6">
-            Tentative start date of the 13 Hours in the Chapel is <strong>9th September 2025</strong>.
+            COME AND STAY AWHILE WITH ME  <br /><strong>(MARK 6:31)</strong>.
+          </p>
+          <p className="text-lg md:text-xl text-gray-700 mb-6">
+          1<sup>ST</sup> October - 31<sup>ST</sup> December 2025
           </p>
           <Link
             href="/registration"
@@ -21,20 +24,6 @@ export default function Home() {
           >
             Register
           </Link>
-        </div>
-      </section>
-
-      {/* Announcement Details */}
-      <section className="py-12 px-4">
-        <div className="container mx-auto max-w-3xl bg-white shadow-lg rounded-xl p-6 md:p-12 border border-indigo-100">
-          <h2 className="text-2xl font-bold mb-4 text-indigo-700">Important Announcements</h2>
-          <ul className="list-disc list-inside space-y-3 text-gray-700">
-            <li>Your name and number will be the contact for blocking that date and time for parishioners.</li>
-            <li>Volunteers will receive only text messages with the name and number of the parishioners booking slots.</li>
-            <li>One person will manage the Excel sheet where booked slots are noted.</li>
-            <li>Expect teething troubles in the first month, but it will get smoother over time.</li>
-            <li>Your suggestions are welcome! Please share your opinion as soon as you read this message. 🙏🏻</li>
-          </ul>
         </div>
       </section>
 

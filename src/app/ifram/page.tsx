@@ -83,7 +83,10 @@ export default function CalendarPage() {
   return (
     <>
       <div className="p-4 min-h-screen bg-gradient-to-br from-indigo-50 via-white to-indigo-100">
-        <h1 className="text-3xl font-extrabold mb-6 text-center text-indigo-700">🙏 Rosary & Prayer Bookings</h1>
+        <h1 className="text-3xl font-extrabold mb-6 text-center text-indigo-700">CHAPEL BOOKING </h1>
+        <p className="text-lg md:text-xl text-center text-gray-700 mb-6">
+          (DATE AND TIME SLOT)
+        </p>
 
         <div className="bg-white rounded-3xl shadow-xl p-4 md:p-6 border border-indigo-100">
           <div className="overflow-x-auto">
