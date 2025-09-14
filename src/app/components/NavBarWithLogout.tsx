@@ -21,7 +21,7 @@ export default function NavBarWithLogout() {
   return (
     <nav className="bg-blue-600 text-white">
       <div className="container mx-auto flex justify-between items-center p-4">
-        <h1 className="text-2xl font-bold">ROSPG</h1>
+        <h1 className="text-2xl font-bold">Our Lady of Egypt Church</h1>
 
         {/* Desktop Menu */}
         <div className="hidden md:flex space-x-4 items-center justify-center">
@@ -39,7 +39,7 @@ export default function NavBarWithLogout() {
         {/* Mobile Hamburger */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="md:hidden focus:outline-none"
+          className="md:hidden focus:outline-none text-2xl"
         >
           {isOpen ? "✖" : "☰"}
         </button>
