@@ -124,12 +124,12 @@ export default function Register() {
               </div>
 
               {/* Email */}
-              <div>
+              {/* <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Address *</label>
                 <input type="email" id="email" name="email" value={formData.email}
                   onChange={handleChange} required placeholder="you@example.com"
                   className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" />
-              </div>
+              </div> */}
 
               {/* Representation */}
               <div>

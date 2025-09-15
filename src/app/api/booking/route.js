@@ -8,7 +8,7 @@ export async function POST(req) {
   await connectDB(); // only runs in Node runtime ✅
   const data = await req.json();
   // ... save booking
-  console.log(typeof (data.mobileNo));
+  console.log("Mobile No: ", typeof (data.mobileNo));
 
   if (!data) {
     NextResponse.json({ success: false, response: "Invalid Data" });
@@ -27,8 +27,8 @@ export async function POST(req) {
 
   const DB_Data = {
     name: fullName,
-    email: mobileNo,
-    mobileNo: email,
+    email: "email@gmail.com",
+    mobileNo: mobileNo,
     representation: representation,
     parishAssociation: parishAssociation,
     communityZone: communityZone,
@@ -37,6 +37,7 @@ export async function POST(req) {
   }
   const result = await createBooking(DB_Data);
   console.log(DB_Data);
+  console.log(result);
   return NextResponse.json(result, { status: result.success ? 200 : 400 });
 }
 
