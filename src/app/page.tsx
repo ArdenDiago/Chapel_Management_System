@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import Footer from './components/Footer';
 import NavBar from './components/NavBar';
+import Calander from './components/Calander';
 
 export default function Home() {
   return (
@@ -16,7 +17,7 @@ export default function Home() {
             COME AND STAY AWHILE WITH ME  <br /><strong>(MARK 6:31)</strong>.
           </p>
           <p className="text-lg md:text-xl text-gray-700 mb-6">
-          1<sup>ST</sup> October - 31<sup>ST</sup> December 2025
+            1<sup>ST</sup> October - 31<sup>ST</sup> December 2025
           </p>
           <Link
             href="/registration"
@@ -29,13 +30,9 @@ export default function Home() {
 
       {/* Calendar Section */}
       <section className="py-12 px-4">
-        <div className="container mx-auto max-w-5xl bg-white shadow-lg rounded-xl p-4 md:p-6 border border-indigo-100">
-          <h2 className="text-2xl font-bold text-indigo-700 mb-6 text-center">Booking Calendar</h2>
-          <iframe
-            src="/ifram"
-            frameBorder="0"
-            className="w-full h-[600px] rounded-xl shadow-lg"
-          />
+        <div className="container  bg-white shadow-lg rounded-xl p-4 md:p-6 border border-indigo-100">
+          <h2 className="text-4xl font-extrabold mb-6 text-center text-indigo-700">Booking Calendar</h2>
+          <Calander />
         </div>
       </section>
 
