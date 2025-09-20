@@ -8,4 +8,6 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const MONGODB_URI = process.env.NODE_ENV === 'production' ? MONGODB_URI_PROD : MONGODB_URI_DEV;
 const adminPassword = process.env.PASSWORD;
 
-export { MONGODB_URI, JWT_SECRET, adminPassword };
+const csvPassword = process.env.CSV_EXPORT_PASSWORD;
+
+export { MONGODB_URI, JWT_SECRET, adminPassword, csvPassword };
