@@ -8,12 +8,12 @@ export async function GET() {
         const bookings = await Booking.find().sort({ date: 1, timeSlot: 1 });
 
         // CSV headers
-        let csv = "Date,Time Slot,Full Name,Email,Mobile,Parish Association\n";
+        let csv = "Date,Time Slot,Full Name,Mobile,Individual,Parish Association,Community Zone\n";
 
         // Add rows
         bookings.forEach((b) => {
             const dateStr = new Date(b.date).toISOString().split("T")[0];
-            csv += `"${dateStr}","${b.timeSlot}","${b.fullName || b.name || ""}","${b.email || ""}","${b.mobileNo || ""}","${b.parishAssociation || ""}"\n`;
+            csv += `"${dateStr}","${b.timeSlot}","${b.fullName || b.name || ""}","${b.mobileNo || ""}",${b.parishAssociation & b.communityZone ? "Yes":"No"},"${b.parishAssociation || "No"}, ${b.communityZone || "No"}"\n`;
         });
 
         return new Response(csv, {
