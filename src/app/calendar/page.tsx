@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Calendar, momentLocalizer } from 'react-big-calendar';
+import { Calendar, momentLocalizer, Views } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import NavBar from '../components/NavBar';
@@ -18,8 +18,8 @@ type Booking = {
   representation?: string;
   parishAssociation?: string;
   communityZone?: string;
-  timeSlot: string;  // e.g. "1:00pm - 2:00pm"
-  date: string;      // e.g. "2025-09-26"
+  timeSlot: string;
+  date: string;
 };
 
 type CalendarEvent = {
@@ -30,9 +30,41 @@ type CalendarEvent = {
   resource: Booking;
 };
 
+// 👇 custom toolbar with month buttons
+function CustomToolbar({ date, onNavigate }: any) {
+  const year = moment(date).year();
+  const allowedMonths = [9, 10, 11]; // Oct–Dec (0-indexed)
+
+  return (
+    <div className="flex items-center justify-center gap-4 mb-4">
+      {allowedMonths.map((month) => {
+        const monthName = moment().month(month).format('MMMM');
+        const isActive = moment(date).month() === month;
+
+        return (
+          <button
+            key={month}
+            onClick={() => onNavigate('DATE', new Date(year, month, 1))}
+            className={`px-4 py-2 rounded-xl font-medium transition ${
+              isActive
+                ? 'bg-indigo-600 text-white shadow'
+                : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+            }`}
+          >
+            {monthName}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+
+  const currentYear = moment().year();
+  const allowedMonths = [9, 10, 11]; // Oct–Dec (0-based)
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -41,55 +73,75 @@ export default function CalendarPage() {
         const data = await res.json();
 
         if (data.success && Array.isArray(data.data)) {
-          const mapped: CalendarEvent[] = (data.data as Booking[]).map((booking) => {
-            const [startTimeRaw, endTimeRaw] = (booking.timeSlot || "")
-              .split(" - ")
-              .map((s) => s?.trim() || "");
+          const mapped: CalendarEvent[] = (data.data as Booking[])
+            .map((booking) => {
+              const [startTimeRaw, endTimeRaw] = (booking.timeSlot || "")
+                .split(" - ")
+                .map((s) => s?.trim() || "");
 
-            let start: Date;
-            let end: Date;
+              let start: Date;
+              let end: Date;
 
-            if (startTimeRaw && endTimeRaw) {
-              start = moment(
-                `${booking.date} ${startTimeRaw}`,
-                "YYYY-MM-DD h:mma"
-              ).toDate();
-              end = moment(
-                `${booking.date} ${endTimeRaw}`,
-                "YYYY-MM-DD h:mma"
-              ).toDate();
-            } else {
-              start = moment(booking.date, "YYYY-MM-DD").startOf("day").toDate();
-              end = moment(booking.date, "YYYY-MM-DD").endOf("day").toDate();
-            }
+              if (startTimeRaw && endTimeRaw) {
+                start = moment(
+                  `${booking.date} ${startTimeRaw}`,
+                  "YYYY-MM-DD h:mma"
+                ).toDate();
+                end = moment(
+                  `${booking.date} ${endTimeRaw}`,
+                  "YYYY-MM-DD h:mma"
+                ).toDate();
+              } else {
+                start = moment(booking.date, "YYYY-MM-DD").startOf("day").toDate();
+                end = moment(booking.date, "YYYY-MM-DD").endOf("day").toDate();
+              }
 
-            return {
-              id: booking._id,
-              title: booking.fullName || booking.name || "Booking",
-              start,
-              end,
-              resource: booking,
-            };
-          });
+              return {
+                id: booking._id,
+                title: booking.fullName || booking.name || "Booking",
+                start,
+                end,
+                resource: booking,
+              };
+            })
+            .filter((event) => {
+              const eventMoment = moment(event.start);
+              return (
+                eventMoment.year() === currentYear &&
+                allowedMonths.includes(eventMoment.month()) &&
+                eventMoment.isSameOrAfter(moment().startOf("month"))
+              );
+            });
 
           setEvents(mapped);
         } else {
           console.warn("No bookings returned or unexpected format", data);
         }
       } catch (err) {
-        console.error('❌ Error fetching bookings:', err);
+        console.error("❌ Error fetching bookings:", err);
       }
     };
 
     fetchBookings();
   }, []);
 
+  const firstValidMonth = allowedMonths.find((m) => m >= moment().month());
+  const defaultDate =
+    firstValidMonth !== undefined
+      ? new Date(currentYear, firstValidMonth, 1)
+      : new Date(currentYear, 9, 1);
+
+  const minDate = new Date(currentYear, 9, 1);   // Oct 1
+  const maxDate = new Date(currentYear, 11, 31); // Dec 31
+
   return (
     <>
       <NavBar />
 
       <div className="p-4 min-h-screen bg-gradient-to-br from-indigo-50 via-white to-indigo-100">
-        <h1 className="text-3xl font-extrabold mb-6 text-center text-indigo-700">CHAPEL BOOKING </h1>
+        <h1 className="text-3xl font-extrabold mb-6 text-center text-indigo-700">
+          CHAPEL BOOKING
+        </h1>
         <p className="text-lg md:text-xl text-center text-gray-700 mb-6">
           (DATE AND TIME SLOT)
         </p>
@@ -106,7 +158,12 @@ export default function CalendarPage() {
               popup
               className="text-sm md:text-base custom-calendar"
               onSelectEvent={(event) => setSelectedBooking(event.resource)}
-              defaultDate={new Date(2025, 8, 28)}
+              defaultDate={defaultDate}
+              min={minDate}
+              max={maxDate}
+              components={{
+                toolbar: CustomToolbar, // 👈 custom toolbar here
+              }}
             />
           </div>
         </div>
@@ -116,11 +173,28 @@ export default function CalendarPage() {
             <h2 className="text-2xl font-semibold text-indigo-700 mb-3">
               {selectedBooking.fullName || selectedBooking.name}
             </h2>
-            <p className="text-gray-700 mb-1"><span className="font-medium">📅</span> {selectedBooking.date}</p>
-            <p className="text-gray-700 mb-1"><span className="font-medium">⏰</span> {selectedBooking.timeSlot}</p>
-            {selectedBooking.email && <p className="text-gray-700 mb-1"><span className="font-medium">✉️</span> {selectedBooking.email}</p>}
-            {selectedBooking.mobileNo && <p className="text-gray-700 mb-1"><span className="font-medium">📞</span> {selectedBooking.mobileNo}</p>}
-            {selectedBooking.parishAssociation && <p className="text-gray-700"><span className="font-medium">⛪</span> {selectedBooking.parishAssociation}</p>}
+            <p className="text-gray-700 mb-1">
+              <span className="font-medium">📅</span> {selectedBooking.date}
+            </p>
+            <p className="text-gray-700 mb-1">
+              <span className="font-medium">⏰</span> {selectedBooking.timeSlot}
+            </p>
+            {selectedBooking.email && (
+              <p className="text-gray-700 mb-1">
+                <span className="font-medium">✉️</span> {selectedBooking.email}
+              </p>
+            )}
+            {selectedBooking.mobileNo && (
+              <p className="text-gray-700 mb-1">
+                <span className="font-medium">📞</span> {selectedBooking.mobileNo}
+              </p>
+            )}
+            {selectedBooking.parishAssociation && (
+              <p className="text-gray-700">
+                <span className="font-medium">⛪</span>{" "}
+                {selectedBooking.parishAssociation}
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -140,12 +214,6 @@ export default function CalendarPage() {
         .custom-calendar .rbc-today { background-color: #eef2ff !important; }
         .custom-calendar .rbc-selected { background-color: #c7d2fe !important; }
         .custom-calendar .rbc-header { background: #f5f3ff; color: #4338ca; font-weight: 600; padding: 8px; }
-        .custom-calendar .rbc-toolbar button {
-          border-radius: 8px; padding: 6px 12px; margin: 0 4px;
-          background: #f3f4f6; border: 1px solid #e5e7eb; transition: all .2s;
-        }
-        .custom-calendar .rbc-toolbar button:hover { background: #6366f1; color: white; }
-        .custom-calendar .rbc-toolbar-label { font-size: 1.1rem; font-weight: 600; color: #4338ca; }
       `}</style>
     </>
   );
