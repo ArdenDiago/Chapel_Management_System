@@ -179,16 +179,6 @@ export default function CalendarPage() {
             <p className="text-gray-700 mb-1">
               <span className="font-medium">⏰</span> {selectedBooking.timeSlot}
             </p>
-            {selectedBooking.email && (
-              <p className="text-gray-700 mb-1">
-                <span className="font-medium">✉️</span> {selectedBooking.email}
-              </p>
-            )}
-            {selectedBooking.mobileNo && (
-              <p className="text-gray-700 mb-1">
-                <span className="font-medium">📞</span> {selectedBooking.mobileNo}
-              </p>
-            )}
             {selectedBooking.parishAssociation && (
               <p className="text-gray-700">
                 <span className="font-medium">⛪</span>{" "}
