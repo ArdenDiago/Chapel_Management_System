@@ -183,9 +183,9 @@ export default function Register() {
 
               {/* Date */}
               <div>
-                <label htmlFor="date" className="block text-sm font-medium text-gray-700">Select Date (09/09/2025 - 10/09/2025) *</label>
+                <label htmlFor="date" className="block text-sm font-medium text-gray-700">Select Date (01/10/2025 - 31/12/2025) *</label>
                 <input type="date" id="date" name="date" value={formData.date}
-                  onChange={handleChange} required min="2025-09-09" max="2025-10-09"
+                  onChange={handleChange} required min="2025-10-01" max="2025-12-31"
                   className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" />
               </div>
 
