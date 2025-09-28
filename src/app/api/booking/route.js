@@ -4,43 +4,73 @@ import { NextResponse } from "next/server";
 
 import { createBooking } from "../../../data/BookingSlots"
 
+
 export async function POST(req) {
-  await connectDB(); // only runs in Node runtime ✅
-  const data = await req.json();
-  // ... save booking
-  console.log("Mobile No: ", typeof (data.mobileNo));
+  await connectDB();
 
-  if (!data) {
-    NextResponse.json({ success: false, response: "Invalid Data" });
+  const body = await req.json();
+  const { data } = body;
+
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    return NextResponse.json({ success: false, response: "Invalid Data" }, { status: 400 });
   }
 
-  const { fullName,
-    mobileNo,
-    email,
-    representation,
-    parishAssociation,
-    communityZone,
-    timeSlot,
-    date } = data;
+  console.log("Received bookings:", data);
 
-  console.log("Data", data);
+  const successfulBookings = [];
+  const failedBookings = [];
 
-  const DB_Data = {
-    name: fullName,
-    email: "email@gmail.com",
-    mobileNo: mobileNo,
-    representation: representation,
-    parishAssociation: parishAssociation,
-    communityZone: communityZone,
-    timeSlot: timeSlot,
-    date: date,
+  for (const d of data) {
+    const {
+      fullName,
+      mobileNo,
+      email,
+      representation,
+      parishAssociation,
+      communityZone,
+      timeSlot,
+      date,
+    } = d;
+
+    const DB_Data = {
+      name: fullName,
+      email: email || "email@gmail.com",
+      mobileNo,
+      representation,
+      parishAssociation,
+      communityZone,
+      timeSlot,
+      date,
+    };
+
+    try {
+      const result = await createBooking(DB_Data);
+
+      if (result.success) {
+        successfulBookings.push(DB_Data);
+        console.log("Saved booking:", DB_Data);
+      } else {
+        failedBookings.push({ ...DB_Data, error: result.response || "Time slot already booked" });
+        console.log("Failed booking:", DB_Data, "Reason:", result.response);
+      }
+
+    } catch (err) {
+      console.error("Error saving booking:", DB_Data, err);
+      failedBookings.push({ ...DB_Data, error: "Unexpected error" });
+    }
   }
-  const result = await createBooking(DB_Data);
-  console.log(DB_Data);
-  console.log(result);
-  return NextResponse.json(result, { status: result.success ? 200 : 400 });
+
+  const allSuccess = failedBookings.length === 0;
+
+  return NextResponse.json(
+    {
+      success: allSuccess,
+      successfulBookings,
+      failedBookings,
+    },
+    { status: allSuccess ? 200 : 207 } // 207 = multi-status (partial success)
+  );
 }
-
 
 export async function GET() {
   try {

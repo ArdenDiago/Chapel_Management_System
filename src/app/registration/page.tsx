@@ -4,6 +4,17 @@ import { useState, useEffect } from 'react';
 import NavBar from '../components/NavBar';
 import Footer from '../components/Footer';
 
+type Booking = {
+  fullName: string;
+  mobileNo: string;
+  email: string;
+  representation: string;
+  parishAssociation?: string;
+  communityZone?: string;
+  timeSlot: string;
+  date: string;
+};
+
 export default function Register() {
   const [formData, setFormData] = useState({
     fullName: '',
@@ -17,8 +28,13 @@ export default function Register() {
     endDate: '',
   });
 
+  const [status, setStatus] = useState<{
+    type: 'success' | 'error';
+    message?: string;
+    successfulBookings?: { date: string; timings: string }[];
+    failedBookings?: { date: string; error: string }[];
+  } | null>(null);
 
-  const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(true);
 
@@ -31,31 +47,70 @@ export default function Register() {
     setLoading(true);
     setStatus(null);
 
-    console.log(formData);
-
     try {
-      const res = await fetch('/api/booking', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.fullName,
+      // Prepare booking data array
+      let bookingsArray: Booking[] = [];
+
+      // If no end date, single booking
+      if (!formData.endDate) {
+        bookingsArray.push({
           fullName: formData.fullName,
-          mobileNo: String(formData.mobileNo).trim(),
-          email: formData.email,
+          mobileNo: formData.mobileNo,
+          email: formData.email || "example@gmail.com",
           representation: formData.representation,
           parishAssociation: formData.parishAssociation,
           communityZone: formData.communityZone,
           timeSlot: formData.timings,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-        }),
+          date: formData.startDate,
+        });
+      } else {
+        // If end date exists, generate all dates between start and end
+        const start = new Date(formData.startDate);
+        const end = new Date(formData.endDate);
+
+        if (end < start) {
+          setStatus({ type: 'error', message: 'End date cannot be before start date.' });
+          setLoading(false);
+          return;
+        }
+
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          bookingsArray.push({
+            fullName: formData.fullName,
+            mobileNo: formData.mobileNo,
+            email: formData.email || "example@gmail.com",
+            representation: formData.representation,
+            parishAssociation: formData.parishAssociation,
+            communityZone: formData.communityZone,
+            timeSlot: formData.timings,
+            date: d.toISOString().split('T')[0], // "YYYY-MM-DD"
+          });
+        }
+      }
+
+      console.log('Prepared bookings:', bookingsArray);
+
+      // Send bookings to API
+      const res = await fetch('/api/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: bookingsArray }),
       });
 
       const result = await res.json();
+
+      console.log('result');
+      console.log(result);
+
       if (result.success) {
-        setStatus({ type: 'success', message: result.response || 'Booking successful' });
+        setStatus({
+          type: 'success',
+          message: result.response || 'Booking successful',
+          successfulBookings: result.successfulBookings || [],
+          failedBookings: result.failedBookings || [],
+        });
         setShowForm(false);
-        // clear form data
+        // Clear form data
         setFormData({
           fullName: '',
           mobileNo: '',
@@ -68,7 +123,12 @@ export default function Register() {
           endDate: '',
         });
       } else {
-        setStatus({ type: 'error', message: result.response || 'Booking failed' });
+        setStatus({
+          type: 'error',
+          message: result.response || 'Booking failed',
+          successfulBookings: result.successfulBookings || [],
+          failedBookings: result.failedBookings || [],
+        });
       }
     } catch (err) {
       console.error(err);
@@ -77,6 +137,7 @@ export default function Register() {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     if (status?.type === 'success') {
@@ -98,20 +159,55 @@ export default function Register() {
             Event Registration
           </h2>
 
+          {/* form */}
           {status && status.type === 'error' && (
             <div className="mb-6 p-4 rounded-lg text-center bg-red-100 text-red-700 border border-red-400">
-              {status.message}
+              <h3 className="font-semibold mb-2">Some bookings failed ❌</h3>
+              <ul className="list-disc list-inside text-left">
+                {status.failedBookings?.map((f, index) => (
+                  <li key={index}>
+                    {f.date} - {f.error}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 
           {!showForm && status?.type === 'success' && (
             <div className="bg-green-100 text-green-700 border border-green-400 p-6 rounded-lg text-center shadow-md">
               <h3 className="text-lg font-semibold mb-2">Booking Confirmed ✅</h3>
-              <p>{status.message}</p>
+
+              {status.successfulBookings && status.successfulBookings.length > 0 && (
+                <>
+                  <p className="mb-2">Successfully booked dates:</p>
+                  <ul className="list-disc list-inside text-left">
+                    {status.successfulBookings.map((s, index) => (
+                      <li key={index}>
+                        {s.date} ({s.timings})
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+
+              {status.failedBookings && status.failedBookings.length > 0 && (
+                <>
+                  <p className="mt-4 mb-2">Failed to book:</p>
+                  <ul className="list-disc list-inside text-left">
+                    {status.failedBookings.map((f, index) => (
+                      <li key={index}>
+                        {f.date} - {f.error}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+
               <p className="text-sm mt-4 text-gray-600">You will be redirected back to the form in 10 seconds.</p>
             </div>
           )}
 
+          {/* message */}
           {showForm && (
             <form onSubmit={handleSubmit} className="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-md space-y-6">
               {/* Full Name */}
