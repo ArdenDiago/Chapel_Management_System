@@ -52,6 +52,7 @@ export default function Calander() {
 
             let start: Date;
             let end: Date;
+            booking.name=booking.name?.toUpperCase();
 
             if (startTimeRaw && endTimeRaw) {
               start = moment(`${booking.date} ${startTimeRaw}`, "YYYY-MM-DD h:mma").toDate();
@@ -140,7 +141,7 @@ export default function Calander() {
         {selectedBooking && (
           <div className="mt-8 max-w-xl mx-auto p-6 rounded-2xl shadow-lg bg-white border-l-4 border-indigo-500">
             <h2 className="text-2xl font-semibold text-indigo-700 mb-3">
-              {selectedBooking.fullName || selectedBooking.name}
+              {selectedBooking.name?.toUpperCase()}
             </h2>
             <p className="text-gray-700 mb-1"><span className="font-medium">📅</span> {selectedBooking.date}</p>
             <p className="text-gray-700 mb-1"><span className="font-medium">⏰</span> {selectedBooking.timeSlot}</p>
