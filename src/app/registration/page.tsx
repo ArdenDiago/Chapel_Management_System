@@ -49,7 +49,7 @@ export default function Register() {
 
     try {
       // Prepare booking data array
-      let bookingsArray: Booking[] = [];
+      const bookingsArray: Booking[] = [];
 
       // If no end date, single booking
       if (!formData.endDate) {

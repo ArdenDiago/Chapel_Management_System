@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Calendar, momentLocalizer, Event as RBCEvent, View } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -32,11 +32,14 @@ export default function Calander() {
   const [currentView, setCurrentView] = useState<View>('month');
 
   // Allowed months: Oct, Nov, Dec 2025
-  const allowedMonths = [
-    new Date(2025, 9, 1),  // October
-    new Date(2025, 10, 1), // November
-    new Date(2025, 11, 1), // December
-  ];
+  const allowedMonths = useMemo(
+    () => [
+      new Date(2025, 9, 1),  // October
+      new Date(2025, 10, 1), // November
+      new Date(2025, 11, 1), // December
+    ],
+    []
+  );
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -52,7 +55,7 @@ export default function Calander() {
 
             let start: Date;
             let end: Date;
-            booking.name=booking.name?.toUpperCase();
+            booking.name = booking.name?.toUpperCase();
 
             if (startTimeRaw && endTimeRaw) {
               start = moment(`${booking.date} ${startTimeRaw}`, "YYYY-MM-DD h:mma").toDate();
@@ -90,7 +93,7 @@ export default function Calander() {
     if (validMonths.length > 0 && currentMonth < validMonths[0]) {
       setCurrentMonth(validMonths[0]);
     }
-  }, [currentMonth]);
+  }, [currentMonth, allowedMonths]);
 
   return (
     <>
@@ -109,8 +112,8 @@ export default function Calander() {
                 key={idx}
                 onClick={() => setCurrentMonth(month)}
                 className={`px-4 py-2 rounded-lg font-medium transition ${moment(currentMonth).isSame(month, 'month')
-                    ? 'bg-indigo-600 text-white shadow'
-                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-indigo-100'
+                  ? 'bg-indigo-600 text-white shadow'
+                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-indigo-100'
                   }`}
               >
                 {moment(month).format("MMMM YYYY")}
