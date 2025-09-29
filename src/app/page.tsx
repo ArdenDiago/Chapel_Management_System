@@ -12,7 +12,7 @@ export default function Home() {
       {/* Hero Section */}
       <section id="home" className="bg-indigo-100 py-16 md:py-24 text-center px-4">
         <div className="container mx-auto max-w-3xl">
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-6 text-indigo-800">13 Hours Adoration before Blessed Sacrament</h1>
+          <h1 className="text-4xl md:text-5xl font-extrabold mb-6 text-indigo-800">13 Hours Adoration before The Blessed Sacrament</h1>
           <p className="text-lg md:text-xl text-gray-700 mb-6">
             COME AND STAY AWHILE WITH ME  <br /><strong>(MARK 6:31)</strong>.
           </p>
