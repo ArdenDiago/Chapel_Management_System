@@ -188,7 +188,7 @@ export default function Calander() {
               </p>
             </div>
 
-            {selectedBooking.names?.length > 0 && (
+            {/* {selectedBooking.names?.length > 0 && (
               <>
                 <p className="font-medium mt-2">Names:</p>
                 <ul className="list-disc list-inside text-gray-700">
@@ -197,7 +197,7 @@ export default function Calander() {
                   ))}
                 </ul>
               </>
-            )}
+            )} */}
           </div>
         )}
       </div>
