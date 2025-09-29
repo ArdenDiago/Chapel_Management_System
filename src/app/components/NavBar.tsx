@@ -8,8 +8,9 @@ export default function NavBar() {
     return (
         <nav className="bg-blue-600 text-white">
             <div className="container mx-auto flex justify-between items-center p-4">
-                <h1 className="text-2xl font-bold"><a href="/">Our Lady of Egypt Church</a></h1>
-
+                <h1 className="text-2xl font-bold">
+                    <Link href="/">Our Lady of Egypt Church</Link>
+                </h1>
                 {/* Desktop Menu */}
                 <div className="hidden md:flex space-x-4 items-center justify-center">
                     <Link href="/" className="hover:underline">Home</Link>
