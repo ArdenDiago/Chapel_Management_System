@@ -7,36 +7,34 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 const localizer = momentLocalizer(moment);
 
-type Booking = {
-  _id: string;
-  fullName?: string;
+type BookingRaw = {
+  date: string;
+  timeSlot: string;
   name?: string;
-  email?: string;
-  mobileNo?: string;
-  representation?: string;
-  parishAssociation?: string;
-  communityZone?: string;
-  timeSlot: string;  // "1:00pm - 2:00pm"
-  date: string;      // "2025-09-26"
 };
 
-// Extend react-big-calendar Event to include our booking resource
+type BookingSlot = {
+  date: string;
+  timeSlot: string;
+  count: number;
+  names: string[]; // store names of people in this slot
+};
+
 type BookingEvent = RBCEvent & {
-  resource: Booking;
+  resource: BookingSlot;
 };
 
 export default function Calander() {
   const [events, setEvents] = useState<BookingEvent[]>([]);
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date(2025, 9, 1)); // October 2025 start
+  const [selectedBooking, setSelectedBooking] = useState<BookingSlot | null>(null);
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date(2025, 9, 1)); // October 2025
   const [currentView, setCurrentView] = useState<View>('month');
 
-  // Allowed months: Oct, Nov, Dec 2025
   const allowedMonths = useMemo(
     () => [
-      new Date(2025, 9, 1),  // October
-      new Date(2025, 10, 1), // November
-      new Date(2025, 11, 1), // December
+      new Date(2025, 9, 1),  // Oct
+      new Date(2025, 10, 1), // Nov
+      new Date(2025, 11, 1), // Dec
     ],
     []
   );
@@ -44,40 +42,39 @@ export default function Calander() {
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const res = await fetch('/api/calendar');
-        const data = await res.json();
+        const res = await fetch('/api/booking');
+        const rawData: BookingRaw[] = await res.json();
 
-        if (data.success && Array.isArray(data.data)) {
-          const mapped: BookingEvent[] = (data.data as Booking[]).map((booking) => {
-            const [startTimeRaw, endTimeRaw] = (booking.timeSlot || "")
-              .split(" - ")
-              .map((s) => s?.trim() || "");
+        // Aggregate by date + timeSlot
+        const slotsMap: Record<string, BookingSlot> = {};
+        rawData.forEach((b) => {
+          const key = `${b.date}-${b.timeSlot}`;
+          if (!slotsMap[key]) {
+            slotsMap[key] = { date: b.date, timeSlot: b.timeSlot, count: 1, names: [b.name || 'Unknown'] };
+          } else {
+            slotsMap[key].count += 1;
+            slotsMap[key].names.push(b.name || 'Unknown');
+          }
+        });
 
-            let start: Date;
-            let end: Date;
-            booking.name = booking.name?.toUpperCase();
+        const aggregatedSlots = Object.values(slotsMap);
 
-            if (startTimeRaw && endTimeRaw) {
-              start = moment(`${booking.date} ${startTimeRaw}`, "YYYY-MM-DD h:mma").toDate();
-              end = moment(`${booking.date} ${endTimeRaw}`, "YYYY-MM-DD h:mma").toDate();
-            } else {
-              start = moment(booking.date, "YYYY-MM-DD").startOf("day").toDate();
-              end = moment(booking.date, "YYYY-MM-DD").endOf("day").toDate();
-            }
+        // Map to Calendar events
+        const mapped: BookingEvent[] = aggregatedSlots.map((slot, idx) => {
+          const [startTimeRaw, endTimeRaw] = slot.timeSlot.split(" - ").map(s => s.trim());
+          const start = moment(`${slot.date} ${startTimeRaw}`, "YYYY-MM-DD h:mma").toDate();
+          const end = moment(`${slot.date} ${endTimeRaw}`, "YYYY-MM-DD h:mma").toDate();
 
-            return {
-              id: booking._id,
-              title: booking.fullName || booking.name || "Booking",
-              start,
-              end,
-              resource: booking,
-            };
-          });
+          return {
+            id: `${slot.date}-${slot.timeSlot}-${idx}`,
+            title: `${slot.timeSlot} ${slot.count} PPL`, 
+            start,
+            end,
+            resource: slot,
+          };
+        });
 
-          setEvents(mapped);
-        } else {
-          console.warn("No bookings returned or unexpected format", data);
-        }
+        setEvents(mapped);
       } catch (err) {
         console.error('❌ Error fetching bookings:', err);
       }
@@ -86,27 +83,35 @@ export default function Calander() {
     fetchBookings();
   }, []);
 
-  // Auto-remove past months
-  useEffect(() => {
-    const now = new Date();
-    const validMonths = allowedMonths.filter(month => month >= new Date(now.getFullYear(), now.getMonth(), 1));
-    if (validMonths.length > 0 && currentMonth < validMonths[0]) {
-      setCurrentMonth(validMonths[0]);
+  // Navigate function for week/month view
+  const handleNavigate = (direction: 'prev' | 'next') => {
+    let newDate;
+    if (currentView === 'week') {
+      newDate = moment(currentMonth).add(direction === 'next' ? 1 : -1, 'week').toDate();
+    } else {
+      newDate = moment(currentMonth).add(direction === 'next' ? 1 : -1, 'month').toDate();
     }
-  }, [currentMonth, allowedMonths]);
+
+    const minDate = allowedMonths[0]; // October 2025
+    const maxDate = moment(allowedMonths[allowedMonths.length - 1]).endOf('month').toDate(); // Dec 2025 end
+
+    if (newDate < minDate) newDate = minDate;
+    if (newDate > maxDate) newDate = maxDate;
+
+    setCurrentMonth(newDate);
+  };
 
   return (
     <>
-      <div className="p-4 min-h-screen bg-gradient-to-br from-indigo-50 via-white to-indigo-100">
+      <div className="p-4 bg-gradient-to-br from-indigo-50 via-white to-indigo-100 flex flex-col items-center">
+
         <h1 className="text-3xl font-extrabold mb-6 text-center text-indigo-700">CHAPEL BOOKING</h1>
-        <p className="text-lg md:text-xl text-center text-gray-700 mb-6">
-          (DATE AND TIME SLOT)
-        </p>
+        <p className="text-lg md:text-xl text-center text-gray-700 mb-6">(DATE AND TIME SLOT)</p>
 
         {/* Month Tabs */}
         <div className="flex justify-center space-x-4 mb-4">
           {allowedMonths
-            .filter(month => month >= new Date(new Date().getFullYear(), new Date().getMonth(), 1)) // hide past months
+            .filter(month => month >= new Date(new Date().getFullYear(), new Date().getMonth(), 1))
             .map((month, idx) => (
               <button
                 key={idx}
@@ -121,7 +126,36 @@ export default function Calander() {
             ))}
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl p-4 md:p-6 border border-indigo-100">
+        {/* View Toggle and Navigation */}
+        <div className="flex justify-center items-center gap-4 mb-4">
+          {currentView === 'week' && <button
+            onClick={() => handleNavigate('prev')}
+            className="px-3 py-1 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+          >
+            ◀
+          </button>
+          }
+          <button
+            onClick={() => setCurrentView('month')}
+            className={`px-3 py-1 rounded-lg font-medium ${currentView === 'month' ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-indigo-100'}`}
+          >
+            Month
+          </button>
+          <button
+            onClick={() => setCurrentView('week')}
+            className={`px-3 py-1 rounded-lg font-medium ${currentView === 'week' ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-indigo-100'}`}
+          >
+            Week
+          </button>
+          {currentView === 'week' && <button
+            onClick={() => handleNavigate('next')}
+            className="px-3 py-1 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+          >
+            ▶
+          </button>}
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-xl p-4 md:p-6 border border-indigo-100 w-full max-w-1xl ">
           <div className="overflow-x-auto">
             <Calendar
               localizer={localizer}
@@ -136,36 +170,48 @@ export default function Calander() {
               date={currentMonth}
               view={currentView}
               onView={(view) => setCurrentView(view)}
-              onNavigate={() => { }} // disable built-in navigation
+              onNavigate={() => { }} // navigation handled manually
             />
           </div>
         </div>
 
         {selectedBooking && (
           <div className="mt-8 max-w-xl mx-auto p-6 rounded-2xl shadow-lg bg-white border-l-4 border-indigo-500">
-            <h2 className="text-2xl font-semibold text-indigo-700 mb-3">
-              {selectedBooking.name?.toUpperCase()}
-            </h2>
-            <p className="text-gray-700 mb-1"><span className="font-medium">📅</span> {selectedBooking.date}</p>
-            <p className="text-gray-700 mb-1"><span className="font-medium">⏰</span> {selectedBooking.timeSlot}</p>
+            <h2 className="text-2xl font-semibold text-indigo-700 mb-3">{selectedBooking.timeSlot}</h2>
+
+            <div className="flex justify-center gap-10 mb-2">
+              <p className="text-gray-700 flex items-center">
+                <span className="font-medium mr-1">📅</span> {selectedBooking.date}
+              </p>
+              <p className="text-gray-700 flex items-center">
+                <span className="font-medium mr-1">👥</span> {selectedBooking.count} People
+              </p>
+            </div>
+
+            {selectedBooking.names?.length > 0 && (
+              <>
+                <p className="font-medium mt-2">Names:</p>
+                <ul className="list-disc list-inside text-gray-700">
+                  {selectedBooking.names.map((n, i) => (
+                    <li key={i}>{n.toUpperCase()}</li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
         )}
       </div>
 
+      
+
       <style jsx global>{`
         .custom-calendar .rbc-month-view { border-radius: 1rem; overflow: hidden; }
-        .custom-calendar .rbc-event {
-          background-color: #6366f1 !important;
-          border-radius: 8px;
-          padding: 2px 6px;
-          font-weight: 500;
-          font-size: 0.85rem;
-        }
+        .custom-calendar .rbc-event { background-color: #6366f1 !important; border-radius: 8px; padding: 2px 6px; font-weight: 500; font-size: 0.85rem; }
         .custom-calendar .rbc-event:hover { background-color: #4338ca !important; }
         .custom-calendar .rbc-today { background-color: #eef2ff !important; }
         .custom-calendar .rbc-selected { background-color: #c7d2fe !important; }
         .custom-calendar .rbc-header { background: #f5f3ff; color: #4338ca; font-weight: 600; padding: 8px; }
-        .custom-calendar .rbc-toolbar { display: none; } /* hide default toolbar */
+        .custom-calendar .rbc-toolbar { display: none; }
       `}</style>
     </>
   );

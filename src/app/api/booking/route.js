@@ -75,7 +75,7 @@ export async function POST(req) {
 export async function GET() {
   try {
     await connectDB();
-    const bookings = await Booking.find();
+    const bookings = await Booking.find().select({ date: 1, name: 1, timeSlot: 1 });
     return new Response(JSON.stringify(bookings), { status: 200 });
   } catch (err) {
     console.error(err);
