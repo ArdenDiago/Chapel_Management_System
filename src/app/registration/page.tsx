@@ -28,6 +28,10 @@ export default function Register() {
     endDate: '',
   });
 
+  // ✅ NEW STATE for weekdays + allDays
+  const [selectedWeekdays, setSelectedWeekdays] = useState<string[]>([]);
+  const [allDays, setAllDays] = useState(false);
+
   const [status, setStatus] = useState<{
     type: 'success' | 'error';
     message?: string;
@@ -37,6 +41,37 @@ export default function Register() {
 
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(true);
+
+  // ✅ helper to get unique weekdays in range
+  const getUniqueWeekdays = (start: string, end: string) => {
+    if (!start || !end) return [];
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const weekdays = new Set<string>();
+    const options: Intl.DateTimeFormatOptions = { weekday: 'long' };
+
+    const current = new Date(startDate);
+    while (current <= endDate) {
+      weekdays.add(current.toLocaleDateString('en-US', options));
+      current.setDate(current.getDate() + 1);
+    }
+    return Array.from(weekdays);
+  };
+
+  // ✅ weekdays list for UI
+  const availableWeekdays = getUniqueWeekdays(formData.startDate, formData.endDate);
+
+  // ✅ handle checkbox change
+  const handleWeekdayChange = (day: string) => {
+    setSelectedWeekdays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
+  };
+
+  const handleAllDaysChange = () => {
+    setAllDays((prev) => !prev);
+    setSelectedWeekdays([]); // clear weekdays if toggling All Days
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -48,15 +83,22 @@ export default function Register() {
     setStatus(null);
 
     try {
-      // Prepare booking data array
       const bookingsArray: Booking[] = [];
+      const start = new Date(formData.startDate);
+      const end = formData.endDate ? new Date(formData.endDate) : null;
 
-      // If no end date, single booking
-      if (!formData.endDate) {
+      if (end && end < start) {
+        setStatus({ type: 'error', message: 'End date cannot be before start date.' });
+        setLoading(false);
+        return;
+      }
+
+      // ✅ If only one date
+      if (!end) {
         bookingsArray.push({
           fullName: formData.fullName,
           mobileNo: formData.mobileNo,
-          email: formData.email || "example@gmail.com",
+          email: formData.email || 'example@gmail.com',
           representation: formData.representation,
           parishAssociation: formData.parishAssociation,
           communityZone: formData.communityZone,
@@ -64,33 +106,31 @@ export default function Register() {
           date: formData.startDate,
         });
       } else {
-        // If end date exists, generate all dates between start and end
-        const start = new Date(formData.startDate);
-        const end = new Date(formData.endDate);
-
-        if (end < start) {
-          setStatus({ type: 'error', message: 'End date cannot be before start date.' });
-          setLoading(false);
-          return;
-        }
-
+        // ✅ multiple dates
         for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-          bookingsArray.push({
-            fullName: formData.fullName,
-            mobileNo: formData.mobileNo,
-            email: formData.email || "example@gmail.com",
-            representation: formData.representation,
-            parishAssociation: formData.parishAssociation,
-            communityZone: formData.communityZone,
-            timeSlot: formData.timings,
-            date: d.toISOString().split('T')[0], // "YYYY-MM-DD"
-          });
+          const weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
+
+          if (
+            allDays || // if allDays selected → allow every day
+            selectedWeekdays.length === 0 ||
+            selectedWeekdays.includes(weekday)
+          ) {
+            bookingsArray.push({
+              fullName: formData.fullName,
+              mobileNo: formData.mobileNo,
+              email: formData.email || 'example@gmail.com',
+              representation: formData.representation,
+              parishAssociation: formData.parishAssociation,
+              communityZone: formData.communityZone,
+              timeSlot: formData.timings,
+              date: d.toISOString().split('T')[0], // "YYYY-MM-DD"
+            });
+          }
         }
       }
 
       console.log('Prepared bookings:', bookingsArray);
 
-      // Send bookings to API
       const res = await fetch('/api/booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -98,9 +138,6 @@ export default function Register() {
       });
 
       const result = await res.json();
-
-      console.log('result');
-      console.log(result);
 
       if (result.success) {
         setStatus({
@@ -110,7 +147,6 @@ export default function Register() {
           failedBookings: result.failedBookings || [],
         });
         setShowForm(false);
-        // Clear form data
         setFormData({
           fullName: '',
           mobileNo: '',
@@ -122,6 +158,8 @@ export default function Register() {
           startDate: '',
           endDate: '',
         });
+        setSelectedWeekdays([]); 
+        setAllDays(false); // reset allDays
       } else {
         setStatus({
           type: 'error',
@@ -137,7 +175,6 @@ export default function Register() {
       setLoading(false);
     }
   };
-
 
   useEffect(() => {
     if (status?.type === 'success') {
@@ -203,33 +240,64 @@ export default function Register() {
                 </>
               )}
 
-              <p className="text-sm mt-4 text-gray-600">You will be redirected back to the form in 10 seconds.</p>
+              <p className="text-sm mt-4 text-gray-600">
+                You will be redirected back to the form in 10 seconds.
+              </p>
             </div>
           )}
 
-          {/* message */}
           {showForm && (
-            <form onSubmit={handleSubmit} className="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-md space-y-6">
+            <form
+              onSubmit={handleSubmit}
+              className="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-md space-y-6"
+            >
               {/* Full Name */}
               <div>
-                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">Full Name *</label>
-                <input type="text" id="fullName" name="fullName" value={formData.fullName}
-                  onChange={handleChange} required className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" />
+                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  id="fullName"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  required
+                  className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                />
               </div>
 
               {/* Mobile */}
               <div>
-                <label htmlFor="mobileNo" className="block text-sm font-medium text-gray-700">Mobile No. *</label>
-                <input type="tel" id="mobileNo" name="mobileNo" value={formData.mobileNo}
-                  onChange={handleChange} required pattern="[0-9]{10}" placeholder="1234567890"
-                  className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" />
+                <label htmlFor="mobileNo" className="block text-sm font-medium text-gray-700">
+                  Mobile No. *
+                </label>
+                <input
+                  type="tel"
+                  id="mobileNo"
+                  name="mobileNo"
+                  value={formData.mobileNo}
+                  onChange={handleChange}
+                  required
+                  pattern="[0-9]{10}"
+                  placeholder="1234567890"
+                  className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                />
               </div>
 
               {/* Representation */}
               <div>
-                <label htmlFor="representation" className="block text-sm font-medium text-gray-700">I Represent (Select One) *</label>
-                <select id="representation" name="representation" value={formData.representation} onChange={handleChange} required
-                  className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                <label htmlFor="representation" className="block text-sm font-medium text-gray-700">
+                  I Represent (Select One) *
+                </label>
+                <select
+                  id="representation"
+                  name="representation"
+                  value={formData.representation}
+                  onChange={handleChange}
+                  required
+                  className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
                   <option value="">Select an option</option>
                   <option value="parish">Parish Association</option>
                   <option value="community">Community/Zone</option>
@@ -239,25 +307,49 @@ export default function Register() {
 
               {formData.representation === 'parish' && (
                 <div>
-                  <label htmlFor="parishAssociation" className="block text-sm font-medium text-gray-700">Name of Parish Association</label>
-                  <input type="text" id="parishAssociation" name="parishAssociation" value={formData.parishAssociation}
-                    onChange={handleChange} className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" />
+                  <label htmlFor="parishAssociation" className="block text-sm font-medium text-gray-700">
+                    Name of Parish Association
+                  </label>
+                  <input
+                    type="text"
+                    id="parishAssociation"
+                    name="parishAssociation"
+                    value={formData.parishAssociation}
+                    onChange={handleChange}
+                    className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  />
                 </div>
               )}
 
               {formData.representation === 'community' && (
                 <div>
-                  <label htmlFor="communityZone" className="block text-sm font-medium text-gray-700">Name of Community/Zone</label>
-                  <input type="text" id="communityZone" name="communityZone" value={formData.communityZone}
-                    onChange={handleChange} className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" />
+                  <label htmlFor="communityZone" className="block text-sm font-medium text-gray-700">
+                    Name of Community/Zone
+                  </label>
+                  <input
+                    type="text"
+                    id="communityZone"
+                    name="communityZone"
+                    value={formData.communityZone}
+                    onChange={handleChange}
+                    className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  />
                 </div>
               )}
 
               {/* Timings */}
               <div>
-                <label htmlFor="timings" className="block text-sm font-medium text-gray-700">Timings *</label>
-                <select id="timings" name="timings" value={formData.timings} onChange={handleChange} required
-                  className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                <label htmlFor="timings" className="block text-sm font-medium text-gray-700">
+                  Timings *
+                </label>
+                <select
+                  id="timings"
+                  name="timings"
+                  value={formData.timings}
+                  onChange={handleChange}
+                  required
+                  className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
                   <option value="">Select a time slot</option>
                   <option value="8:00am - 9:00am">8:00am - 9:00am</option>
                   <option value="9:00am - 10:00am">9:00am - 10:00am</option>
@@ -276,48 +368,86 @@ export default function Register() {
               </div>
 
               {/* Date */}
-
-              <div className="flex gap-4">
-                {/* Start Date */}
-                <div className={formData.startDate ? "w-1/2" : "w-full"}>
-                  <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
-                    Start Date (01/10/2025 - 31/12/2025) *
-                  </label>
-                  <input
-                    type="date"
-                    id="startDate"
-                    name="startDate"
-                    value={formData.startDate}
-                    onChange={handleChange}
-                    required
-                    min="2025-10-01"
-                    max="2025-12-31"
-                    className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                {/* End Date */}
-                {formData.startDate && (
-                  <div className="w-1/2">
-                    <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">
-                      End Date (optional)
+              <div>
+                <div className="flex gap-4">
+                  {/* Start Date */}
+                  <div className={formData.startDate ? 'w-1/2' : 'w-full'}>
+                    <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
+                      Start Date (01/10/2025 - 31/12/2025) *
                     </label>
                     <input
                       type="date"
-                      id="endDate"
-                      name="endDate"
-                      value={formData.endDate}
+                      id="startDate"
+                      name="startDate"
+                      value={formData.startDate}
                       onChange={handleChange}
-                      min={formData.startDate}
+                      required
+                      min="2025-10-01"
                       max="2025-12-31"
                       className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
+
+                  {/* End Date */}
+                  {formData.startDate && (
+                    <div className="w-1/2">
+                      <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">
+                        End Date (optional)
+                      </label>
+                      <input
+                        type="date"
+                        id="endDate"
+                        name="endDate"
+                        value={formData.endDate}
+                        onChange={handleChange}
+                        min={formData.startDate}
+                        max="2025-12-31"
+                        className="mt-1 block w-full p-2 sm:p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* ✅ Dynamic weekday checkboxes with All Days */}
+                {formData.endDate && availableWeekdays.length > 0 && (
+                  <div className="mt-4">
+                    <h1 className="font-medium mb-2">Select Weekdays</h1>
+
+                    {/* All Days Checkbox */}
+                    <label className="flex items-center space-x-2 mb-2">
+                      <input
+                        type="checkbox"
+                        checked={allDays}
+                        onChange={handleAllDaysChange}
+                      />
+                      <span>All Days</span>
+                    </label>
+
+                    {/* Weekday checkboxes */}
+                    <div className="flex flex-wrap gap-4">
+                      {availableWeekdays.map((day, idx) => (
+                        <label key={idx} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            value={day}
+                            checked={selectedWeekdays.includes(day)}
+                            onChange={() => handleWeekdayChange(day)}
+                            disabled={allDays} // disable if All Days is selected
+                          />
+                          <span>{day}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
+
               <div>
-                <button type="submit" disabled={loading}
-                  className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
                   {loading ? 'Submitting...' : 'Submit Registration'}
                 </button>
               </div>
